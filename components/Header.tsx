@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SearchIcon } from './IconComponents';
 import type { User, Notification } from '../types';
@@ -17,8 +16,8 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, notifications, o
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
-        <header className="h-20 bg-white shadow-sm flex items-center justify-between px-8 border-b z-20">
-            <div className="relative w-full max-w-md">
+        <header className="h-20 bg-white shadow-sm flex items-center justify-between px-4 md:px-8 border-b z-20">
+            <div className="relative w-full max-w-xs sm:max-w-md">
                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                      <SearchIcon className="text-gray-400"/>
                  </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Page, Class, Teacher, Room, ClassGroup, Conflict, User, Notification } from './types';
 import { MOCK_CLASSES, MOCK_TEACHERS, MOCK_ROOMS, MOCK_CLASS_GROUPS } from './constants';
@@ -8,6 +9,8 @@ import Dashboard from './components/Dashboard';
 import TimetableView from './components/TimetableView';
 import AuthPage from './components/AuthPage';
 import ProfilePage from './components/ProfilePage';
+import BottomNavBar from './components/BottomNavBar';
+import ReminderToast from './components/ReminderToast';
 
 const App: React.FC = () => {
     // Auth state
@@ -44,6 +47,8 @@ const App: React.FC = () => {
     const [classGroups] = useState<ClassGroup[]>(MOCK_CLASS_GROUPS);
     const [conflicts, setConflicts] = useState<Conflict[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [activeReminder, setActiveReminder] = useState<Class | null>(null);
+    const [shownReminderIds, setShownReminderIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         localStorage.setItem('schedulEaseUsers', JSON.stringify(users));
@@ -95,34 +100,58 @@ const App: React.FC = () => {
 
     }, [classes, teachers, rooms]);
 
-    // Generate notifications for upcoming classes
+    // Generate notifications and reminders for upcoming classes
     useEffect(() => {
-        const interval = setInterval(() => {
+        const checkUpcomingClasses = () => {
             const now = new Date();
-            const upcomingClasses = classes.filter(c => {
-                const diff = c.start.getTime() - now.getTime();
-                return diff > 0 && diff < 15 * 60 * 1000; // 15 minutes
-            });
+            // Find the single next upcoming class within the 15-minute window
+            const upcomingClass = classes
+                .filter(c => {
+                    const diff = c.start.getTime() - now.getTime();
+                    return diff > 0 && diff < 15 * 60 * 1000; // 15 minutes
+                })
+                .sort((a, b) => a.start.getTime() - b.start.getTime())
+                [0]; // Get the very next one
 
-            const classNotifications = upcomingClasses.map(c => ({
-                id: `notif-c-${c.id}`,
-                message: `Upcoming: "${c.title}" starts at ${c.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
-                type: 'class',
-                read: false,
-                timestamp: new Date(),
-            } as Notification));
+            if (upcomingClass && !shownReminderIds.has(upcomingClass.id)) {
+                // Set as active reminder toast
+                setActiveReminder(upcomingClass);
+                
+                // Add a notification to the panel
+                const newNotification: Notification = {
+                    id: `notif-reminder-${upcomingClass.id}`,
+                    message: `Reminder: "${upcomingClass.title}" starts at ${upcomingClass.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+                    type: 'class',
+                    read: false,
+                    timestamp: new Date(),
+                };
 
-            // Avoid adding duplicate notifications
-            setNotifications(prev => {
-                const existingClassNotifIds = new Set(prev.filter(n => n.type === 'class').map(n => n.id));
-                const newNotifications = classNotifications.filter(n => !existingClassNotifIds.has(n.id));
-                return [...prev, ...newNotifications];
-            });
+                setNotifications(prev => {
+                    // Avoid duplicates
+                    if (prev.some(n => n.id === newNotification.id)) {
+                        return prev;
+                    }
+                    return [...prev, newNotification];
+                });
 
-        }, 60 * 1000); // Check every minute
+                // Mark this reminder as shown
+                setShownReminderIds(prev => new Set(prev).add(upcomingClass.id));
+            }
+        };
 
-        return () => clearInterval(interval);
-    }, [classes]);
+        const interval = setInterval(checkUpcomingClasses, 30 * 1000); // Check every 30 seconds for better responsiveness
+
+        // Reset shown reminders at the start of a new day for recurring classes
+        const dailyResetInterval = setInterval(() => {
+            setShownReminderIds(new Set());
+        }, 24 * 60 * 60 * 1000);
+
+
+        return () => {
+            clearInterval(interval);
+            clearInterval(dailyResetInterval);
+        };
+    }, [classes, shownReminderIds]);
     
     const addClass = (newClass: Omit<Class, 'id'>) => {
         setClasses(prev => [...prev, { ...newClass, id: `cls-${Date.now()}` }]);
@@ -219,10 +248,17 @@ const App: React.FC = () => {
                     notifications={notifications}
                     onMarkAsRead={markNotificationAsRead}
                 />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-gray p-4 md:p-8">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-gray p-4 md:p-8 pb-20 md:pb-8">
                     {renderPage()}
                 </main>
             </div>
+            <BottomNavBar currentPage={currentPage} setCurrentPage={setCurrentPage} className="md:hidden" />
+            {activeReminder && (
+                <ReminderToast 
+                    reminderClass={activeReminder}
+                    onDismiss={() => setActiveReminder(null)} 
+                />
+            )}
         </div>
     );
 };

@@ -46,7 +46,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser, classes, conflicts, 
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold text-dark-gray">Hello, {currentUser.name}!</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-dark-gray">Hello, {currentUser.name}!</h1>
                 <p className="text-gray-500">Here's what's happening today, {today.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.</p>
             </div>
             

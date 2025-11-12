@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { Class, Teacher, Room, ClassGroup } from '../types';
 import { PlusIcon, EditIcon, SaveIcon, CancelIcon, TrashIcon } from './IconComponents';
@@ -93,11 +92,11 @@ const TimetableView: React.FC<TimetableViewProps> = ({ classes, teachers, rooms,
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md h-full flex flex-col">
-            <header className="flex flex-wrap items-center justify-between pb-4 border-b">
-                <div className="flex items-center space-x-4">
+            <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pb-4 border-b">
+                <div>
                     <h2 className="text-2xl font-bold">Weekly Timetable</h2>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                     {isEditMode ? (
                         <>
                            <button 
